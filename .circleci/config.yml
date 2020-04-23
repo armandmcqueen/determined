@@ -22,6 +22,10 @@ parameters:
 
 
 commands:
+  fix-circle-working-directory:
+    description: "Fix CIRCLE_WORKING_DIRECTORY"
+    steps:
+      - run: echo 'CIRCLE_WORKING_DIRECTORY="${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}"' >> $BASH_ENV
   install-node:
     description: Install Node 12.x
     steps:
@@ -142,6 +146,7 @@ jobs:
       image: ubuntu-1604:201903-01
     resource_class: large
     steps:
+      - fix-circle-working-directory
       - checkout
       - run: sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
       - run: sudo systemctl restart docker
@@ -151,8 +156,14 @@ jobs:
           pyenv global 3.6.5
           python3.6 -m venv /tmp/venv
           . /tmp/venv/bin/activate
-          pip install --upgrade pip\<20 setuptools
-          make python-get-deps
+          pip install --upgrade pip\<20 setuptools wheel
+          cd $CIRCLE_WORKING_DIRECTORY/common; python setup.py bdist_wheel -d $CIRCLE_WORKING_DIRECTORY/build
+          cd $CIRCLE_WORKING_DIRECTORY/harness; python setup.py bdist_wheel -d $CIRCLE_WORKING_DIRECTORY/build
+          cd $CIRCLE_WORKING_DIRECTORY/deploy; python setup.py bdist_wheel -d $CIRCLE_WORKING_DIRECTORY/build
+          pip install -r $CIRCLE_WORKING_DIRECTORY/tests/integrations/requirements.txt
+          pip install --find-links $CIRCLE_WORKING_DIRECTORY/build \
+            determined==<< pipeline.parameters.det-version >> \
+            determined-deploy==<< pipeline.parameters.det-version >>
 
       - run: docker pull determinedai/environments:py-3.6.9-pytorch-1.4-tf-1.14-cpu-4bd937a
 
