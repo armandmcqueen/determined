@@ -62,7 +62,7 @@ def test_tf_keras_single_gpu(tf2: bool) -> None:
     assert len(trials) == 1
 
 
-@pytest.mark.frameworks_cpu  # type: ignore
+@pytest.mark.tensorflow_cpu  # type: ignore
 @pytest.mark.parametrize("tf2", [True, False])  # type: ignore
 def test_tf_keras_const_warm_start(tf2: bool) -> None:
     config = conf.load_config(conf.official_examples_path("cifar10_cnn_tf_keras/const.yaml"))
@@ -122,7 +122,7 @@ def test_tf_keras_mnist_parallel() -> None:
     assert len(trials) == 1
 
 
-@pytest.mark.frameworks_cpu  # type: ignore
+@pytest.mark.tensorflow_cpu  # type: ignore
 @pytest.mark.parametrize("tf2", [False])  # type: ignore
 @pytest.mark.parametrize("storage_type", ["lfs"])  # type: ignore
 def test_tf_keras_mnist_data_layer_lfs(tf2: bool, storage_type: str) -> None:
