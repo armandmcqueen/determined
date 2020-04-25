@@ -3,6 +3,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.3.0
+  slack: circleci/slack@3.4.2
 
 executors:
   python-35:
@@ -26,6 +27,15 @@ commands:
     description: "Fix CIRCLE_WORKING_DIRECTORY"
     steps:
       - run: echo 'CIRCLE_WORKING_DIRECTORY="${CIRCLE_WORKING_DIRECTORY/#\~/$HOME}"' >> $BASH_ENV
+
+
+  set-slack-user-id:
+    steps:
+      - run: |
+          set -x
+          EMAIL="$(git show -s --format='%ae' $CIRCLE_SHA1)"
+          python .circleci/scripts/get_slack_user.py $EMAIL > /tmp/slack_user_id
+          echo 'export SLACK_USER_ID=$(cat /tmp/slack_user_id)' >> $BASH_ENV
 
 
   install-docker:
@@ -428,7 +438,21 @@ jobs:
       - store_test_results:
           path: /tmp/test-results/
 
-
+  slack:
+    docker:
+      - image: python:3.6.9
+    environment:
+      PATH: /tmp/venv/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    steps:
+      - checkout
+      - setup-python-venv:
+          extras-requires: "slackclient"
+          executor: python:3.6.9
+      - set-slack-user-id
+      - slack/status:
+          fail_only: false
+          mentions: '$SLACK_USER_ID'
+          only_for_branches: "circle-slack"
 
 workflows:
   test-cli:
@@ -454,6 +478,11 @@ workflows:
       - test-e2e-tf:
           requires:
             - build-debs
+
+  slack:
+    jobs:
+      - slack:
+          context: slack
 
   test-unit:
     jobs:
