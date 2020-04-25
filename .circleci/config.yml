@@ -32,10 +32,22 @@ commands:
   set-slack-user-id:
     steps:
       - run: |
-          set -x
-          EMAIL="$(git show -s --format='%ae' $CIRCLE_SHA1)"
-          python .circleci/scripts/get_slack_user.py $EMAIL > /tmp/slack_user_id
-          echo 'export SLACK_USER_ID=$(cat /tmp/slack_user_id)' >> $BASH_ENV
+          if ! [ -x "$(command -v jq)" ]; then
+            apt update && apt install -y jq
+          fi
+
+          AUTHOR_EMAIL="$(git show -s --format='%ae' $CIRCLE_SHA1)"
+          LOOKUP_RESPONSE=$(curl -s "https://slack.com/api/users.lookupByEmail?token=${SLACK_API_TOKEN}&email=${AUTHOR_EMAIL}")
+          SUCCESS=$(echo "$LOOKUP_RESPONSE" | jq ".ok")
+          if [[ "$SUCCESS" == "true" ]]; then
+            SLACK_USER_ID=$(echo "$LOOKUP_RESPONSE" | jq -r ".user.id")
+            SLACK_NAME=$(echo "$LOOKUP_RESPONSE" | jq -r ".user.name")
+            echo "export SLACK_NAME=\"${SLACK_NAME}\"" >> $BASH_ENV
+            echo "export SLACK_USER_ID=\"${SLACK_USER_ID}\"" >> $BASH_ENV
+          else
+            echo "Unable to find Slack user ID for  \"${AUTHOR_EMAIL}\"."
+          fi
+      - run: env
 
 
   install-docker:
@@ -438,6 +450,20 @@ jobs:
       - store_test_results:
           path: /tmp/test-results/
 
+  build-and-push-docker-images:
+    docker:
+      - image: cimg/python:3.6.9
+    environment:
+      PATH: /tmp/venv/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - build-docker-images
+      - run: make publish-dev
+
+
+
   slack:
     docker:
       - image: python:3.6.9
@@ -445,14 +471,7 @@ jobs:
       PATH: /tmp/venv/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     steps:
       - checkout
-      - setup-python-venv:
-          extras-requires: "slackclient"
-          executor: python:3.6.9
       - set-slack-user-id
-      - slack/status:
-          fail_only: false
-          mentions: '$SLACK_USER_ID'
-          only_for_branches: "circle-slack"
 
 workflows:
   test-cli:
@@ -481,8 +500,7 @@ workflows:
 
   slack:
     jobs:
-      - slack:
-          context: slack
+      - slack
 
   test-unit:
     jobs:
