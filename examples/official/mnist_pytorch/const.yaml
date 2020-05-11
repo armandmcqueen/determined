@@ -1,6 +1,11 @@
 description: mnist_pytorch_const
 data:
   url: https://s3-us-west-2.amazonaws.com/determined-ai-test-data/pytorch_mnist.tar.gz
+environment:
+  force_pull_image: true
+  image:
+#    gpu: "determinedai/environments:cuda-10.0-pytorch-1.4-tf-1.14-gpu-4bd937a"
+    gpu: "gcr.io/determined-ai/armand-test@sha256:23d053cdb2b8e5eaa6c1edb476c0bef77b5691ed22bf7aacdf3bf06afa8d119f"
 hyperparameters:
   learning_rate: 1.0
   global_batch_size: 64

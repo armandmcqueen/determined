@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	dockerConfigFile        = "/root/.docker/config.json"
+	dockerConfigFile        = "/home/ubuntu/.docker/config.json"
 	credentialsHelperPrefix = "docker-credential-"
 	tokenUsername           = "<token>"
 )
