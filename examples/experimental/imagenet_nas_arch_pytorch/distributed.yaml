@@ -1,4 +1,4 @@
-description: imagenet_gaea
+description: imagenet_gaea_1node_distributed
 
 data:
   # Change bucket_name to GCP bucket with imagenet dataset
@@ -7,7 +7,7 @@ data:
   #
   # If bucket_name is null, we will run with randomly 
   # generated data.
-  bucket_name: determined-ai-datasets 
+  bucket_name: determined-imagenet-dataset
   # We recommend num_workers_train to be set to 16
   # when running with slots_per_trial=8
   num_workers_train: 16

@@ -1,7 +1,4 @@
-# NOTE: this config uses randomly generated data on single GPU.
-# Please use distributed.yaml if you want to run on the
-# the actual imagenet data.
-description: imagenet_gaea
+description: imagenet_gaea_2node_distributed
 
 data:
   # Change bucket_name to GCP bucket with imagenet dataset
@@ -38,7 +35,7 @@ min_validation_period: 10
 
 hyperparameters:
   num_classes: 1000
-  learning_rate: 0.5
+  learning_rate: 1.0
   momentum: 0.9
   weight_decay: 3e-5
   label_smoothing_rate: 0.1
@@ -47,7 +44,9 @@ hyperparameters:
   layers: 14
   # Set global_batch_size to 1024
   # if not using randomly generated data.
-  global_batch_size: 1024
+  # Batch size may be too big for GPU memory depending
+  # on your GPU and number of slots_per_trial.
+  global_batch_size: 2048
   auxiliary: false
   auxiliary_weight: 0.4
   autoaugment: true
@@ -59,13 +58,13 @@ hyperparameters:
 resources:
   # We recommend 8 slots with V100
   # and at least 16 slots with K80 GPUs.
-  slots_per_trial: 8
+  slots_per_trial: 16
   shm_size: 30000000000
 
 searcher:
   name: single
   metric: top1_accuracy 
-  max_steps: 300 # 1.2 million images in training set of imagenet
+  max_steps: 150 # 1.2 million images in training set of imagenet
   smaller_is_better: false 
 
 optimizations:

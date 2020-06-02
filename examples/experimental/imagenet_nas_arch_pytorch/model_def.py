@@ -20,7 +20,9 @@ import torchvision.transforms as transforms
 from torch import nn
 
 import determined as det
-from data import ImageNetDataset
+# from data import ImageNetDataset
+from data_aws import ImageNetDataset
+
 from determined.pytorch import DataLoader, LRScheduler, PyTorchTrial, reset_parameters
 from model import NetworkImageNet
 from utils import AutoAugment, CrossEntropyLabelSmooth, Cutout, HSwish, Swish, accuracy
