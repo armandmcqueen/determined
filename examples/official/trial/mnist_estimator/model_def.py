@@ -6,6 +6,7 @@ import os
 import tarfile
 import requests
 from typing import Callable, Dict, List, Tuple
+from pathlib import Path
 
 import tensorflow as tf
 
@@ -28,24 +29,31 @@ def download_data(download_directory) -> str:
     The dataset will be downloaded into download_directory, if it is not already
     present.
     """
-    if not tf.io.gfile.exists(download_directory):
-        tf.io.gfile.makedirs(download_directory)
+    download_directory = Path(download_directory)
+    if not download_directory.exists():
+        download_directory.mkdir(parents=True)
 
-    filepath = os.path.join(download_directory, MNIST_TF_RECORDS_FILE)
-    if not tf.io.gfile.exists(filepath):
+    filepath = download_directory / MNIST_TF_RECORDS_FILE
+    if not filepath.exists():
         logging.info("Downloading {}".format(MNIST_TF_RECORDS_URL))
+        logging.info(f"Downloading to {filepath}")
+        print("/tmp contents")
+        print([x for x in Path("/tmp").iterdir()])
 
+        filepath.touch()
+        print("created file")
         r = requests.get(MNIST_TF_RECORDS_URL)
-        with tf.io.gfile.GFile(filepath, "wb") as f:
+        with filepath.open(mode="wb") as f:
             f.write(r.content)
-            logging.info("Downloaded {} ({} bytes)".format(MNIST_TF_RECORDS_FILE, f.size()))
+
+        logging.info("Downloaded {} ({} bytes)".format(MNIST_TF_RECORDS_FILE, filepath.stat().st_size))
 
         logging.info("Extracting {} to {}".format(MNIST_TF_RECORDS_FILE, download_directory))
         with tarfile.open(filepath, mode="r:gz") as f:
             f.extractall(path=download_directory)
 
-    data_dir = os.path.join(download_directory, "mnist-tfrecord")
-    assert tf.io.gfile.exists(data_dir)
+    data_dir = download_directory / "mnist-tfrecord"
+    assert data_dir.exists()
     return data_dir
 
 
@@ -76,12 +84,16 @@ class MNistTrial(EstimatorTrial):
         self.data_downloaded = False
 
     def build_estimator(self) -> tf.estimator.Estimator:
-        optimizer = tf.compat.v1.train.AdamOptimizer(
+        optimizer = tf.train.AdamOptimizer(
             learning_rate=self.context.get_hparam("learning_rate"),
         )
         # Call `wrap_optimizer` immediately after creating your optimizer.
         optimizer = self.context.wrap_optimizer(optimizer)
-        return tf.compat.v1.estimator.DNNClassifier(
+
+        # [FORCE FAILURE]
+        # run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed())
+        run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed(), train_distribute=tf.distribute.MirroredStrategy())
+        return tf.estimator.DNNClassifier(
             feature_columns=[
                 tf.feature_column.numeric_column(
                     "image", shape=(IMAGE_SIZE, IMAGE_SIZE, 1), dtype=tf.float32
@@ -93,7 +105,7 @@ class MNistTrial(EstimatorTrial):
                 self.context.get_hparam("hidden_layer_2"),
                 self.context.get_hparam("hidden_layer_3"),
             ],
-            config=tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed()),
+            config=run_config,
             optimizer=optimizer,
             dropout=self.context.get_hparam("dropout"),
         )
@@ -128,7 +140,7 @@ class MNistTrial(EstimatorTrial):
 
     @staticmethod
     def _get_filenames(directory: str) -> List[str]:
-        return [os.path.join(directory, path) for path in tf.io.gfile.listdir(directory)]
+        return [str((directory / path).absolute()) for  path in Path(directory).iterdir()]
 
     def build_train_spec(self) -> tf.estimator.TrainSpec:
         if not self.data_downloaded:

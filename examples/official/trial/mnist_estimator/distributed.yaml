@@ -1,4 +1,13 @@
 description: mnist_estimator_const_distributed
+environment:
+  environment_variables:
+    - DET_DEBUG_TRACK_SESSION_CONFIG=True
+    - DET_DEBUG_TRACK_RUN_CONFIG=True
+    - DET_DEBUG_VERBOSE_CUSTOM_LOGGING=True
+    - DET_DEBUG_BREAK_VISIBLE_DEVICE_LIST=False
+    - DET_DEBUG_OVERWRITE_TF_CONFIG_ENVVAR_NAME=False
+    - DET_DEBUG_CHECK_DEFAULT_TF_SESSION=True
+    - DET_DEBUG_LOG_CALL_STACK=True
 hyperparameters:
   learning_rate: 1e-3
   global_batch_size: 64
@@ -8,7 +17,8 @@ hyperparameters:
   dropout: 0.5
 resources:
   # Use 16 GPUs to train the model.
-  slots_per_trial: 16
+  slots_per_trial: 8
+max_restarts: 0
 searcher:
   name: single
   metric: accuracy

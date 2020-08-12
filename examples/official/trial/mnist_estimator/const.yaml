@@ -1,4 +1,13 @@
 description: mnist_estimator_const
+environment:
+  environment_variables:
+    - DET_DEBUG_TRACK_SESSION_CONFIG=True
+    - DET_DEBUG_TRACK_RUN_CONFIG=True
+    - DET_DEBUG_VERBOSE_CUSTOM_LOGGING=True
+    - DET_DEBUG_BREAK_VISIBLE_DEVICE_LIST=False
+    - DET_DEBUG_OVERWRITE_TF_CONFIG_ENVVAR_NAME=False
+    - DET_DEBUG_CHECK_DEFAULT_TF_SESSION=True
+    - DET_DEBUG_LOG_CALL_STACK=True
 hyperparameters:
   learning_rate: 1e-3
   global_batch_size: 64
@@ -11,4 +20,5 @@ searcher:
   metric: accuracy
   max_steps: 20
   smaller_is_better: false
+max_restarts: 0
 entrypoint: model_def:MNistTrial
