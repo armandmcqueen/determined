@@ -91,8 +91,9 @@ class MNistTrial(EstimatorTrial):
         optimizer = self.context.wrap_optimizer(optimizer)
 
         # [FORCE FAILURE]
-        # run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed())
-        run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed(), train_distribute=tf.distribute.MirroredStrategy())
+        run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed())
+        # run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed(), train_distribute=tf.distribute.MirroredStrategy())
+        # run_config = tf.estimator.RunConfig(tf_random_seed=self.context.get_trial_seed(), train_distribute=tf.contrib.distribute.DistributeConfig(train_distribute=None, eval_distribute=None))
         return tf.estimator.DNNClassifier(
             feature_columns=[
                 tf.feature_column.numeric_column(

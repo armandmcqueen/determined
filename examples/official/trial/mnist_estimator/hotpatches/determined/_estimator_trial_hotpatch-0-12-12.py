@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, cast
 
 import numpy as np
 import tensorflow as tf
+
 from packaging import version
 
 import determined as det
@@ -455,16 +456,6 @@ class EstimatorTrialController(det.LoopTrialController):
             hvd.require_horovod_type("tensorflow", "EstimatorTrial is in use.")
             hvd.init()
 
-            # This is option is available for when TF ignores `gpu_options.visible_device_list`.
-            # TODO (DET-3762): Remove this once it's no longer necessary.
-            if env.experiment_config.get("data", {}).get("set_cuda_visible_devices", False):
-                logging.info(
-                    "Setting `CUDA_VISIBLE_DEVICES` environment variables "
-                    "and disabling NCCL_P2P_DISABLE"
-                )
-                os.environ["CUDA_VISIBLE_DEVICES"] = str(hvd.local_rank())
-                os.environ["NCCL_P2P_DISABLE"] = "1"
-
         # Initialize random seeds.
         if env.experiment_config.input_from_dataflow():
             logging.debug("Using tensorpack dataflows as input.")
@@ -678,7 +669,6 @@ class EstimatorTrialController(det.LoopTrialController):
             if session_config is None:
                 session_config = tf.compat.v1.ConfigProto()
             session_config.gpu_options.allow_growth = True
-
             if BREAK_VISIBLE_DEVICE_LIST:
                 visible_device_list = ",".join(str(slot_id) for slot_id in self.env.slot_ids)
                 print("HOTPATCH", "Attempting to set visible devices to all GPUs:", visible_device_list)
@@ -686,18 +676,9 @@ class EstimatorTrialController(det.LoopTrialController):
                     visible_device_list
                 )
             else:
-                # If using CUDA_VISIBLE_DEVICES there is only one visible GPU
-                # so there is no need to set visible devices for TF.
-                # TODO (DET-3762): Remove this once it's no longer necessary.
-                if not self.env.experiment_config.get("data", {}).get(
-                        "set_cuda_visible_devices", False
-                ):
-                    session_config.gpu_options.visible_device_list = str(
-                        self.env.slot_ids[horovod.hvd.local_rank()]
-                    )
-
-
-
+                session_config.gpu_options.visible_device_list = str(
+                    self.env.slot_ids[horovod.hvd.local_rank()]
+                )
         elif len(self.env.container_gpus) > 1:
             print("HOTPATCH", "Entered the parallel training branch for some reason")
             check.true(len(self.rendezvous_info.get_addrs()) == 1)
@@ -728,6 +709,8 @@ class EstimatorTrialController(det.LoopTrialController):
         return config
 
     def run(self) -> None:
+
+
         try:
             if DISPLAY_SESSION_CONFIG:
                 inspect_estimator_settings(self.estimator)
@@ -872,12 +855,9 @@ class EstimatorTrial(det.Trial):
 
     def __init__(self, context: estimator.EstimatorTrialContext):
         """
-        Initializes a trial using the provided ``context``.
+        Initializes a trial using the provided trial_context.
 
-        This method should typically be overridden by trial definitions: at minimum,
-        it is important to store ``context`` as an instance variable so that
-        it can be accessed by other methods of the trial class. This can also be a
-        convenient place to initialize other state that is shared between the
+        Override this function to initialize any shared state between the
         estimator, train spec, and/or validation spec.
         """
         self.context = context  # type: estimator.EstimatorTrialContext
