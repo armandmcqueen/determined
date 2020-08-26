@@ -12,6 +12,7 @@ import TaskList from 'pages/TaskList';
 import TaskLogs from 'pages/TaskLogs';
 import TrialDetails from 'pages/TrialDetails';
 import TrialLogs from 'pages/TrialLogs';
+import TrialMetrics from 'pages/TrialMetrics';
 import history from 'routes/history';
 import { clone } from 'utils/data';
 import { isFullPath, parseUrl } from 'utils/routes';
@@ -76,6 +77,14 @@ const trialDetailsRoute = {
   title: 'Trial',
 };
 
+const trialMetricsRoute = {
+  component: TrialMetrics,
+  id: 'trialMetrics',
+  needAuth: true,
+  path: '/det/trial-metrics/:trialId',
+  title: 'Trial Metrics',
+};
+
 const taskLogsRoute = {
   component: TaskLogs,
   icon: 'logs',
@@ -116,6 +125,7 @@ export const defaultAppRoute = dashboardRoute;
 export const appRoutes: RouteConfig[] = [
   trialLogsRoute,
   trialDetailsRoute,
+  trialMetricsRoute,
   experimentDetailsRoute,
   taskLogsRoute,
   taskListRoute,
