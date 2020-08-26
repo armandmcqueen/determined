@@ -762,10 +762,10 @@ class BaseSession(SessionInterface):
         creating the TensorFlow session.
       TypeError: If one of the arguments has the wrong type.
     """
-    hprint(f"[BaseSession.__init__] Created new BaseSession with config: {config}")
+    call_stack_trace_id = uuid.uuid4()
+    hprint(f"[BaseSession.__init__] Created new BaseSession ({call_stack_trace_id}) with config: {config}")
     if LOG_CALL_STACK:
-      hprint(f"[BaseSession.__init__] Attempting to print call stack")
-      call_stack_trace_id = uuid.uuid4()
+      hprint(f"[BaseSession.__init__] Attempting to print call stack ({call_stack_trace_id})")
       log_call_stack("BaseSessionInit", call_stack_trace_id)
 
     _python_session_create_counter.get_cell().increase_by(1)
