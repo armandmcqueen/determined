@@ -49,6 +49,9 @@ from tensorflow.python.util.compat import collections_abc
 ################################################################################
 from google.protobuf import text_format
 import os
+import uuid
+import sys
+import traceback
 
 def read_envvar_bool(envvar_name):
     print(f"Reading envvar {envvar_name}={os.environ.get(envvar_name)}")
@@ -69,15 +72,92 @@ def print_run_config(log_location_id, run_config):
 DISPLAY_SESSION_CONFIG = read_envvar_bool("DET_DEBUG_TRACK_SESSION_CONFIG")
 DISPLAY_RUN_CONFIG = read_envvar_bool("DET_DEBUG_TRACK_RUN_CONFIG")
 VERBOSE_CUSTOM_LOGGING = read_envvar_bool("DET_DEBUG_VERBOSE_CUSTOM_LOGGING")
+LOG_CALL_STACK = read_envvar_bool("DET_DEBUG_LOG_CALL_STACK")
+LOG_CALL_STACK_WITH_TRACEBACK = read_envvar_bool("DET_DEBUG_LOG_CALL_STACK_USE_TRACEBACK")
+LOG_CALL_STACK_CONTINUE_THROUGH_ERROR = read_envvar_bool("DET_DEBUG_LOG_CALL_STACK_CONTINUE_THROUGH_ERROR")
 
 print("HOTPATCH", "session_hotpatch.py", f"DISPLAY_SESSION_CONFIG = {DISPLAY_SESSION_CONFIG}")
 print("HOTPATCH", "session_hotpatch.py", f"DISPLAY_RUN_CONFIG = {DISPLAY_RUN_CONFIG}")
 print("HOTPATCH", "session_hotpatch.py", f"VERBOSE_CUSTOM_LOGGING = {VERBOSE_CUSTOM_LOGGING}")
+print("HOTPATCH", "session_hotpatch.py", f"LOG_CALL_STACK = {LOG_CALL_STACK}")
+print("HOTPATCH", "session_hotpatch.py", f"LOG_CALL_STACK_WITH_TRACEBACK = {LOG_CALL_STACK_WITH_TRACEBACK}")
+print("HOTPATCH", "session_hotpatch.py", f"LOG_CALL_STACK_CONTINUE_THROUGH_ERROR = {LOG_CALL_STACK_CONTINUE_THROUGH_ERROR}")
+
+if LOG_CALL_STACK:
+  assert VERBOSE_CUSTOM_LOGGING, "Patch is configured to LOG_CALL_STACK, but VERBOSE_CUSTOM_LOGGING is disabled. " \
+                                 "LOG_CALL_STACK will not display anything unless VERBOSE_CUSTOM_LOGGING is enabled"
 
 
 def hprint(s):
     if VERBOSE_CUSTOM_LOGGING:
         print("HOTPATCH", "session_hotpatch", "custom logs:", s)
+
+
+def log_call_stack(call_stack_type, call_stack_trace_id):
+  if LOG_CALL_STACK_WITH_TRACEBACK:
+    return log_call_stack_traceback(call_stack_type, call_stack_trace_id)
+  else:
+    return log_call_stack_sys_getframe(call_stack_type, call_stack_trace_id)
+
+
+def log_call_stack_traceback(call_stack_type, call_stack_id):
+  try:
+    stack = traceback.extract_stack()
+    for frame_counter, frame in enumerate(stack):
+      file_name = frame.filename
+      line_number = frame.lineno
+      line_content = frame.line  # The source code causing the failure
+      function_name = frame.name
+      info = dict(
+        call_stack_type=call_stack_type,
+        frame_id=frame_counter,
+        trace_id=call_stack_id,
+        file_name=file_name,
+        line_number=line_number,
+        line_content=line_content,
+        function_name=function_name
+      )
+      hprint(f"CALL STACK INFO USING TRACEBACK ({call_stack_type}-{call_stack_id}): {info}")
+  except Exception as e:
+    hprint(f"CALL STACK INFO USING TRACEBACK RAISED EXCEPTION ({call_stack_type}-{call_stack_id}): {repr(e)} | {str(e)}")
+    if not LOG_CALL_STACK_CONTINUE_THROUGH_ERROR:
+      raise
+
+def log_call_stack_sys_getframe(call_stack_type, call_stack_id):
+  try:
+    current_frame = sys._getframe(0)
+    frame_counter = 0
+    while current_frame is not None:
+      try:
+        file_name = current_frame.f_code.co_filename
+        line_number = current_frame.f_code.co_firstlineno
+        line_content = current_frame.f_code.co_names  # This is not really the contents of that line, so not a great way to do this
+        function_name = current_frame.f_code.co_name
+        info = dict(
+          call_stack_type=call_stack_type,
+          frame_id=frame_counter,
+          trace_id=call_stack_id,
+          file_name=file_name,
+          line_number=line_number,
+          line_content=line_content,
+          function_name=function_name
+        )
+        hprint(f"CALL STACK INFO USING SYS._GETFRAME ({call_stack_type}-{call_stack_id}): {info}")
+        current_frame = current_frame.f_back
+        frame_counter += 1
+      except Exception as e:
+        # A single
+        hprint(
+          f"CALL STACK INFO USING SYS._GETFRAME RAISED EXCEPTION (INNER) ({call_stack_type}-{call_stack_id}): {repr(e)} | {str(e)}")
+        if not LOG_CALL_STACK_CONTINUE_THROUGH_ERROR:
+          raise
+        break
+  except Exception as e:
+    hprint(f"CALL STACK INFO USING SYS._GETFRAME RAISED EXCEPTION (OUTER) ({call_stack_type}-{call_stack_id}): {repr(e)} | {str(e)}")
+    if not LOG_CALL_STACK_CONTINUE_THROUGH_ERROR:
+      raise
+
+
 
 ################################################################################
 
@@ -683,6 +763,11 @@ class BaseSession(SessionInterface):
       TypeError: If one of the arguments has the wrong type.
     """
     hprint(f"[BaseSession.__init__] Created new BaseSession with config: {config}")
+    if LOG_CALL_STACK:
+      hprint(f"[BaseSession.__init__] Attempting to print call stack")
+      call_stack_trace_id = uuid.uuid4()
+      log_call_stack("BaseSessionInit", call_stack_trace_id)
+
     _python_session_create_counter.get_cell().increase_by(1)
     if graph is None:
       self._graph = ops.get_default_graph()

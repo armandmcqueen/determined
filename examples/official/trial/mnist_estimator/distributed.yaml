@@ -8,6 +8,8 @@ environment:
     - DET_DEBUG_OVERWRITE_TF_CONFIG_ENVVAR_NAME=False
     - DET_DEBUG_CHECK_DEFAULT_TF_SESSION=True
     - DET_DEBUG_LOG_CALL_STACK=True
+    - DET_DEBUG_LOG_CALL_STACK_USE_TRACEBACK=True
+    - DET_DEBUG_LOG_CALL_STACK_CONTINUE_THROUGH_ERROR=False
 hyperparameters:
   learning_rate: 1e-3
   global_batch_size: 64
