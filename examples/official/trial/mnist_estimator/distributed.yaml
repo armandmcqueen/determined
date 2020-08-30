@@ -10,6 +10,7 @@ environment:
     - DET_DEBUG_LOG_CALL_STACK=True
     - DET_DEBUG_LOG_CALL_STACK_USE_TRACEBACK=True
     - DET_DEBUG_LOG_CALL_STACK_CONTINUE_THROUGH_ERROR=False
+    - DET_DEBUG_HARDCODE_NCHW_CHECK=True
 hyperparameters:
   learning_rate: 1e-3
   global_batch_size: 64

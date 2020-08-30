@@ -84,6 +84,9 @@ class MNistTrial(EstimatorTrial):
         self.data_downloaded = False
 
     def build_estimator(self) -> tf.estimator.Estimator:
+        # from tensorflow.python.keras.backend import _has_nchw_support
+        # devices = _has_nchw_support()
+
         optimizer = tf.train.AdamOptimizer(
             learning_rate=self.context.get_hparam("learning_rate"),
         )

@@ -15,3 +15,5 @@ cp -pv /run/determined/workdir/hotpatches/tensorflow/framework_device_hotpatch.p
 
 cp -pv /run/determined/workdir/hotpatches/tensorflow/device_lib_hotpatch.py /opt/conda/lib/python3.6/site-packages/tensorflow_core/python/client/device_lib.py
 cp -pv /run/determined/workdir/hotpatches/tensorflow/session_hotpatch.py /opt/conda/lib/python3.6/site-packages/tensorflow_core/python/client/session.py
+
+cp -pv /run/determined/workdir/hotpatches/tensorflow/keras_backend.py /opt/conda/lib/python3.6/site-packages/tensorflow_core/python/keras/backend.py
