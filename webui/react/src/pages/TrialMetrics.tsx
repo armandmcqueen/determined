@@ -27,7 +27,8 @@ interface Params {
 // from=now-20s&to=now
 
 function genGrafanaEmbedUrl(panelId: string) {
-  const url = 'http://3.236.80.157:3000/d/govu5aZGk/dtrain-time-series-metrics?' +
+  // const url = 'http://3.236.80.157:3000/d/govu5aZGk/dtrain-time-series-metrics?' +
+  const url = 'http://localhost:8080/proxy/grafana/d/govu5aZGk/dtrain-time-series-metrics?' +
         `viewPanel=${panelId}` +
         '&orgId=1' +
         '&refresh=1s' +
