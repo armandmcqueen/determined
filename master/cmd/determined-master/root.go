@@ -137,22 +137,29 @@ func getConfig(configMap map[string]interface{}) (*internal.Config, error) {
 	return config, nil
 }
 
+// Detects if the passed in config is in the legacy format or in the V1 format. If it is
+// legacy, it is converted to V1 and returned.
 func applyBackwardsCompatibility(configMap map[string]interface{}) (map[string]interface{}, error) {
 	const (
 		agent      = "agent"
 		kubernetes = "kubernetes"
 	)
 
-	_, ok1 := configMap["resource_manager"]
-	_, ok2 := configMap["resource_pools"]
-	_, ok3 := configMap["scheduler"]
-	_, ok4 := configMap["provisioner"]
-	if (ok1 || ok2) && (ok3 || ok4) {
+	_, hasResourceManagerField := configMap["resource_manager"]
+	_, hasResourcePoolsField := configMap["resource_pools"]
+	_, hasSchedulerTopLevelField := configMap["scheduler"]
+	_, hasProvisionerTopLevelField := configMap["provisioner"]
+
+	isV1 := hasResourceManagerField || hasResourcePoolsField
+	isLegacy := hasSchedulerTopLevelField || hasProvisionerTopLevelField
+
+	if isLegacy && isV1 {
 		return nil, errors.New(
 			"cannot use the old and the new configuration schema at the same time",
 		)
 	}
-	if ok1 || ok2 {
+
+	if isV1 {
 		return configMap, nil
 	}
 
@@ -165,36 +172,36 @@ func applyBackwardsCompatibility(configMap map[string]interface{}) (map[string]i
 			"fitting_policy": "best",
 		},
 	}
-	if v, ok := configMap["scheduler"]; ok {
-		vScheduler, ok := v.(map[string]interface{})
+	if legacySchedulerConfigUntyped, ok := configMap["scheduler"]; ok {
+		legacySchedulerConfig, ok := legacySchedulerConfigUntyped.(map[string]interface{})
 		if !ok {
 			return nil, errors.New("wrong type for scheduler field")
 		}
 
 		newScheduler := make(map[string]interface{})
-		if vFit, ok := vScheduler["fit"]; ok {
-			if newScheduler["fitting_policy"], ok = vFit.(string); !ok {
+		if legacySchedulerFit, ok := legacySchedulerConfig["fit"]; ok {
+			legacySchedulerFitStr, ok := legacySchedulerFit.(string)
+			if !ok {
 				return nil, errors.New("wrong type for scheduler.fit field")
 			}
+			newScheduler["fitting_policy"] = legacySchedulerFitStr
 		}
-		if vType, ok := vScheduler["type"]; ok {
-			if newScheduler["type"], ok = vType.(string); !ok {
+		if legacySchedulerType, ok := legacySchedulerConfig["type"]; ok {
+			legacySchedulerTypeStr, ok := legacySchedulerType.(string)
+			if !ok {
 				return nil, errors.New("wrong type for scheduler.type field")
 			}
+			newScheduler["type"] = legacySchedulerTypeStr
 		}
 
-		if vRP, ok := v.(map[string]interface{})["resource_provider"]; ok {
-			if newRM, ok = vRP.(map[string]interface{}); ok {
+		if legacyResourceProviderConfig, ok := legacySchedulerConfig["resource_provider"]; ok {
+			if newRM, ok = legacyResourceProviderConfig.(map[string]interface{}); ok {
 				if vRPType, ok := newRM["type"]; ok {
 					if vRPTypeStr, ok := vRPType.(string); ok {
 						if vRPTypeStr != agent && vRPTypeStr != kubernetes {
 							return nil, errors.New("wrong value for scheduler.resource_provider.type field")
 						}
-						if vRPTypeStr == kubernetes {
-							newRM["type"] = kubernetes
-						} else {
-							newRM["type"] = agent
-						}
+						newRM["type"] = vRPTypeStr
 					} else {
 						return nil, errors.New("wrong type for scheduler.resource_provider.type field")
 					}
