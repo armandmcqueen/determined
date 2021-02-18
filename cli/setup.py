@@ -11,7 +11,7 @@ setup(
     license="Apache License 2.0",
     classifiers=["License :: OSI Approved :: Apache Software License"],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     install_requires=[
         "argcomplete>=1.9.4",
         "gitpython>=3.1.3",
